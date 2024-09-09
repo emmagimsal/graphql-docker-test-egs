@@ -39,13 +39,14 @@ jobs:
         NEW_VERSION: ${{ steps.version.outputs.version }}
       run: |
         docker build -t emmags/docker-graphql:$NEW_VERSION .
+        docker build -t emmags/docker-graphql:latest .
         
     - name: Push Docker Image
       env:
         NEW_VERSION: ${{ steps.version.outputs.version }}
       run: |
         docker push emmags/docker-graphql:$NEW_VERSION
-        
+        docker push emmags/docker-graphql:latest
     
         
     # - name: Build the Docker image
