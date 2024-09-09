@@ -9,45 +9,51 @@ on:
 jobs:
 
   build:
-
+  
     runs-on: ubuntu-latest
-    
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: Checkout code 
+      uses: actions/checkout@v3
       with:
         fetch-depth: 0
-        
+
+    - uses: docker/setup-qemu-action@v3
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/build-push-action@v5
+      with:
+            context: .
+            platforms: linux/amd64,linux/arm64
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+    
     - name: Git Semantic Version
       uses: PaulHatch/semantic-version@v4.0.3
       with:
         major_pattern: "major:"
         minor_pattern: "feat:"
-        format: "${major}.${minor}.${patch}-prerelease ${increment}"
-      id: version
-        
-    - name: Login in Docker Hub
-      env:
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      run: |
-        docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
-        
-    - name: Build Docker Image
-      env:
-        NEW_VERSION: ${{ steps.version.outputs.version }}
-      run: |
-        docker build -t emmags/docker-graphql:$NEW_VERSION .
-        docker build -t emmags/docker-graphql:latest .
-        
-    - name: Push Docker Image
-      env:
-        NEW_VERSION: ${{ steps.version.outputs.version }}
-      run: |
-        docker push emmags/docker-graphql:$NEW_VERSION
-        docker push emmags/docker-graphql:latest
+        format: "${major}.${minor}.${patch}-prerelease${increment}"
+      id: version     #con esto tenemos acceso a todo el resultado del paso
     
-        
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USER }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Build Docker Image 
+      uses: docker/build-push-action@v5
+      env:
+        NEW_VERSION: ${{ steps.version.outputs.version }}
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: emmags/docker-grahql:${{ steps.version.outputs.version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+
     # - name: Build the Docker image
-      # run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+    #   run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
